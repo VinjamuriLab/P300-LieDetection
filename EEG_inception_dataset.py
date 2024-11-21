@@ -11,7 +11,8 @@ import transformers
 from transformers import Transformer
 from tqdm import tqdm 
 
-class PrintTransformer(Transformer):
+# this is used to 
+class Reshape(Transformer):
     def __init__(self, name=""):
         self.name = name
 
@@ -21,108 +22,107 @@ class PrintTransformer(Transformer):
         # print(x.shape , self.name)
 
         return x 
-    
+
+
 #BrainWaves_to_get_custom_seconds_data
 class EEG_inception(data.Dataset):
-
+    """kind : train, val; 
+    normalize : True, False;
+    balancing : equal_samples, smote, inception, default;
+    start_msecond : indicates the data after in milliseconds we process
+    end_msecond : indicates the data until in milliseconds we process
+    Hyperparameters : balancing, normalize, decimation_factor, start_msecond, end_msecond  (if changed need to change the model architecture)
+    """
     
-    def __init__(self, kind = "train", normalize = 1):
+    def __init__(self, kind = "train", normalize = 1, balancing = "default"):
 
         self.kind = kind
+        self.balancing = balancing
+
+        start_msecond = 250
+        end_msecond = 1000
+
         df1 = pd.read_csv("D:\\Vikas\\lie_detection\\BrainWaves\\data\\pre-processed_raw\\data02_all\\data02.csv")
         df2 = pd.read_csv("D:\\Vikas\\lie_detection\\BrainWaves\\data\\pre-processed_raw\\data03_all\\data03.csv")
-
-       
         df = pd.concat((df1, df2), axis=0, )
-
         # Shuffle the resulting dataframe
-        df = df.sample(frac=1, random_state=1).reset_index(drop=True)  
-
+        
         
         # use this for normalizing the data. 
         sampling_rate = 1000
-        # decimation_factor = 1
-        # final_rate = sampling_rate // decimation_factor
-        epoch_duration = 1.8 # seconds
+        decimation_factor = 1 # meaning, the resultant signal is equal to 1800/decimation_factor
 
-
+        # this pipeline is to filter, decimate, and normalize the data
         eeg_pipe = make_pipeline(
-            # transformers.Decimator(decimation_factor),
-            # PrintTransformer(name='de'),
+            transformers.Decimator(decimation_factor),
+            Reshape(name='de'),
             transformers.ButterFilter(sampling_rate , 4, 0.5, 30),
-            PrintTransformer(name='bu'),
+            Reshape(name='bu'),
             transformers.ChannellwiseScaler(StandardScaler())
             
         )
 
         df["annotations"] = df["annotations"].replace({"Present" : 1, "Absent" : 0})
-# markers_pipe = transformers.MarkersTransformer(labels_mapping, decimation_factor)
     
+
         if normalize == True or kind == "train":
-            temp = df[:7650]
+            original_data = df[:7650].copy()
+            balanced_data = self.balance_data(original_data.copy())
             
-            # Separate positive and negative samples
-            # pos_samples = df[df["annotations"] == 1]
-            # neg_samples = df[df["annotations"] == 0]
-
-            # # Ensure both classes have 2300 samples
-            # pos_samples = pos_samples[:2300]
-            # neg_samples = neg_samples[:2300]
-
-            # # Combine the two classes back together
-            # df = pd.concat([pos_samples, neg_samples], axis=0)
-
-            # ones = pd.read_csv("D:\\Vikas\\lie_detection\\BrainWaves\\data\\pre-processed_raw\\augmented_data\\ones\\ones.csv")
-            # zeroes = pd.read_csv("D:\\Vikas\\lie_detection\\BrainWaves\\data\\pre-processed_raw\\augmented_data\\zeroes\\zeroes.csv")
-            # df = pd.concat((df, ones, zeroes), axis=0).reset_index(drop = True)
-
-            if kind == "train":
-                df = temp[:]
         if kind == "val":
             df = df[7650:9000]
 
-            
-            # Separate positive and negative samples
-            pos_samples = df[df["annotations"] == 1]
-            neg_samples = df[df["annotations"] == 0]
-
-            # Ensure both classes have 2300 samples
-            print(min(len(pos_samples), len(neg_samples)))
-            pos_samples = pos_samples[:min(len(pos_samples), len(neg_samples))]
-            neg_samples = neg_samples[:min(len(pos_samples), len(neg_samples))]
-            
-            print("here", len(df))
-            # # Combine the two classes back together
-            df = pd.concat([pos_samples, neg_samples], axis=0)
+            # balancing can only be equal_samples, when kind is val
+            self.balancing = "equal_samples"
+            balanced_data = self.balance_data(df.copy())
         
-
-        # # remove this: its here for sanity
-        # df = df[:100]
         
-        self.labels = df["annotations"].to_list()
+        if self.balancing == "smote":
+            
+            self.labels = original_data["annotations"].to_list()
+            file_paths = original_data['paths']
 
-        file_paths = df['paths']
+            # smote the dataset
+            r_features = np.array([np.load(file_path , allow_pickle= 1) for file_path in tqdm(file_paths)], dtype= np.float64)
 
-        # r_features = np.array([np.load(file_path , allow_pickle= 1) for file_path in tqdm(file_paths)], dtype= np.float64)
-        r_features = np.array([np.load(file_path , allow_pickle= 1) for file_path in tqdm(file_paths)], dtype= np.float64)
+            r_features = r_features[:,:,start_msecond: end_msecond]
+            r_features = r_features.reshape(-1, 8 * (end_msecond - start_msecond))
+            print("before", r_features.shape)
+            smote = SMOTE(random_state=42)
+            r_features, self.labels = smote.fit_resample(r_features, self.labels)
+            r_features = r_features.reshape(-1, 8, end_msecond - start_msecond)
+
+            print(len(original_data), r_features.shape, "in smote")
+        
+        else:
+            self.labels = balanced_data["annotations"].to_list()
+            file_paths = balanced_data['paths']
+
+            r_features = np.array([np.load(file_path , allow_pickle= 1) for file_path in tqdm(file_paths)], dtype= np.float64)
+            r_features = r_features[:,:,start_msecond:end_msecond]
+
         print(r_features.shape, "shap[e]")
-        r_features = r_features[:,:,250:1000]
+
         if normalize == True:
-            for eegs in r_features:
+            
+            file_paths = original_data['paths']
+
+            # smote the dataset
+            orig_features = np.array([np.load(file_path , allow_pickle= 1) for file_path in tqdm(file_paths)], dtype= np.float64)
+
+            for eegs in orig_features:
                 eeg_pipe.fit(eegs)
-        
+            
             for indx, eegs in enumerate(r_features):
                 r_features[indx] = eeg_pipe.transform(eegs)
+            
+
 
         print(r_features.shape, "in here dataset")
         self.features = r_features
-            
         self.indices = list(range(len(self.features)))
     
-
-        print(kind, "kind",len(df), len(self.labels), len(self.features))
-        # print(self.indices)
-        print("main_job done")
+        print(kind, "main_job done",len(df), len(self.labels), len(self.features))
 
     def __getitem__(self, indx):
      
@@ -134,9 +134,40 @@ class EEG_inception(data.Dataset):
     
     def __len__(self):
         return len(self.indices)
-    
 
-# e = EEG_inception(kind = "val" , normalize= 1)
+
+    def balance_data(self, df):
+        if self.balancing == "equal_samples":
+            print('should be here ')
+            # Separate positive and negative samples
+            pos_samples = df[df["annotations"] == 1][:]
+            neg_samples = df[df["annotations"] == 0][:]
+
+            # Separate positive and negative samples
+            pos_samples = pos_samples[:min(len(pos_samples), len(neg_samples))]
+            neg_samples = neg_samples[:min(len(pos_samples), len(neg_samples))]
+            
+            # # Combine the two classes back together
+            df = pd.concat([pos_samples, neg_samples], axis=0)
+
+        elif self.balancing == "inception":
+            ones = pd.read_csv("D:\\Vikas\\lie_detection\\BrainWaves\\data\\pre-processed_raw\\augmented_data\\ones\\ones.csv")
+            zeroes = pd.read_csv("D:\\Vikas\\lie_detection\\BrainWaves\\data\\pre-processed_raw\\augmented_data\\zeroes\\zeroes.csv")
+            df = pd.concat((df, ones, zeroes), axis=0).reset_index(drop = True)
+        
+        elif self.balancing == "smote":
+            pass
+        
+        elif self.balancing == "default":
+            return df
+        
+        else:
+            raise "unknown balancing used, change balancing to smote, inception, None, or equal_samples"
+
+        df = df.sample(frac=1, random_state=1).reset_index(drop=True)  
+        return df
+
+# e = EEG_inception(kind = "train" , normalize= False, balancing = 'inception')
 # print(e[1])
 # pos = neg = 0
 # for i in e:
