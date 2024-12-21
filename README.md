@@ -49,3 +49,38 @@ We evaluated several state-of-the-art deep learning models:
 - **Goal**: Achieve a richer, more accurate deception detection system.  
 
 ---
+
+## ⚙️Steps to Run the Model
+  
+  - This model has been trained on a custom dataset, which cannot be shared at the moment. However, this project is designed to be easily adaptable for other datasets with minimal modifications.
+  
+  - Follow the steps below to use the model with your own data:
+
+    - **Preprocess Your Data**
+      - Prepare your data by creating a CSV file that includes:
+        - Signal location
+        - Label for each sample
+
+    - **Data Augmentation**
+      - To augment the data, run the eeg_data-augmentation.ipynb notebook. This file contains the necessary code to apply various data augmentation techniques to your dataset.
+
+    - **Train the Model**
+      - To train the model, execute the train.py script. Ensure that your dataset is properly formatted before running the script.
+
+    - **Organize Your Data**
+      - Arrange your pre-processed data in a directory structure like: ./data/pre-processed_raw/...
+
+    Make sure your data is in the correct format for training.
+
+    **Model Output**
+    The results, along with the model checkpoints, will be saved in a directory. The output files will be named with the prefix checkpoint to indicate the saved model states.
+
+    **Dataset Folder and Available Models**
+    The dataset folder contains different configurations that support:
+        - Various types of data augmentation
+        Specific parameters like:
+            - Normalization
+            - Decimation factor
+            - Start and end milliseconds for signal cropping
+
+By following these steps and adjusting the dataset and parameters as needed, you can easily adapt the project to other datasets.
