@@ -7,32 +7,41 @@ import re, os
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-import transformers
-from transformers import Transformer
+import transformers_
+from transformers_ import Transformer
 from tqdm import tqdm 
 
 # this is used to 
 class Reshape(Transformer):
+    """This class reshapes the output of the pipelibe object"""
     def __init__(self, name=""):
         self.name = name
 
     def transform(self, x):
-        # print(x.shape, x)
         x = np.stack(x, axis=0)
-        # print(x.shape , self.name)
-
         return x 
 
 
 #BrainWaves_to_get_custom_seconds_data
 class EEG_inception(data.Dataset):
-    """kind : train, val; 
-    normalize : True, False;
-    balancing : equal_samples, smote, inception, default;
-    start_msecond : indicates the data after in milliseconds we process
-    end_msecond : indicates the data until in milliseconds we process
-    Hyperparameters : balancing, normalize, decimation_factor, start_msecond, end_msecond  (if changed need to change the model architecture)
+ 
     """
+   This `Dataset` class is designed to output data based on specific variations provided. The parameters include:
+
+        - kind: Specifies the dataset type, e.g., `train` or `val`.
+        - normalize: Indicates whether data normalization is applied (`True` or `False`).
+        - balancing: Defines the balancing strategy, which can be `equal_samples`, `smote`, `inception`, or `default`.
+        - start_msecond: Specifies the starting point (in milliseconds) for data processing.
+        - end_msecond: Specifies the endpoint (in milliseconds) for data processing.
+
+        ### Hyperparameters:
+        - balancing
+        - normalize
+        - decimation_factor
+        - start_msecond
+        - end_msecond
+
+        *Note*: Modifying these hyperparameters requires corresponding changes to the model architecture. """
     
     def __init__(self, kind = "train", normalize = 1, balancing = "default"):
 
@@ -54,11 +63,11 @@ class EEG_inception(data.Dataset):
 
         # this pipeline is to filter, decimate, and normalize the data
         eeg_pipe = make_pipeline(
-            transformers.Decimator(decimation_factor),
+            transformers_.Decimator(decimation_factor),
             Reshape(name='de'),
-            transformers.ButterFilter(sampling_rate , 4, 0.5, 30),
+            transformers_.ButterFilter(sampling_rate , 4, 0.5, 30),
             Reshape(name='bu'),
-            transformers.ChannellwiseScaler(StandardScaler())
+            transformers_.ChannellwiseScaler(StandardScaler())
             
         )
 
@@ -91,8 +100,6 @@ class EEG_inception(data.Dataset):
             smote = SMOTE(random_state=42)
             r_features, self.labels = smote.fit_resample(r_features, self.labels)
             r_features = r_features.reshape(-1, 8, end_msecond - start_msecond)
-
-            print(len(original_data), r_features.shape, "in smote")
         
         else:
             self.labels = balanced_data["annotations"].to_list()
@@ -101,7 +108,6 @@ class EEG_inception(data.Dataset):
             r_features = np.array([np.load(file_path , allow_pickle= 1) for file_path in tqdm(file_paths)], dtype= np.float64)
             r_features = r_features[:,:,start_msecond:end_msecond]
 
-        print(r_features.shape, "shap[e]")
 
         if normalize == True:
             
@@ -116,13 +122,9 @@ class EEG_inception(data.Dataset):
             for indx, eegs in enumerate(r_features):
                 r_features[indx] = eeg_pipe.transform(eegs)
             
-
-
-        print(r_features.shape, "in here dataset")
         self.features = r_features
         self.indices = list(range(len(self.features)))
     
-        print(kind, "main_job done",len(df), len(self.labels), len(self.features))
 
     def __getitem__(self, indx):
      
@@ -138,7 +140,7 @@ class EEG_inception(data.Dataset):
 
     def balance_data(self, df):
         if self.balancing == "equal_samples":
-            print('should be here ')
+            
             # Separate positive and negative samples
             pos_samples = df[df["annotations"] == 1][:]
             neg_samples = df[df["annotations"] == 0][:]
@@ -167,11 +169,3 @@ class EEG_inception(data.Dataset):
         df = df.sample(frac=1, random_state=1).reset_index(drop=True)  
         return df
 
-# e = EEG_inception(kind = "train" , normalize= False, balancing = 'inception')
-# print(e[1])
-# pos = neg = 0
-# for i in e:
-#     if i[1] == 1:
-#         pos+=1
-#     else: neg +=1 
-# print(pos, neg)

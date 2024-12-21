@@ -1,0 +1,4 @@
+data/
+results/
+checkpoints_v3_adamw_l2_0.0004/
+lightning_logs/

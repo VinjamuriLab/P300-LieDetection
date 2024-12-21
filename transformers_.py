@@ -103,41 +103,6 @@ class ChannellwiseScaler(Transformer):
         # Return in original format
         return scaled[0] if is_2d else scaled
 
-# class ChannellwiseScaler(Transformer):
-#     '''Performs channelwise scaling according to given scaler
-#     '''
-#     def __init__(self, scaler: Transformer):
-#         '''Args:
-#             scaler: instance of one of sklearn.preprocessing classes
-#                 StandardScaler or MinMaxScaler or analogue
-#         '''
-#         self.scaler = scaler
-
-#     def fit(self, x: np.ndarray, y=None):
-#         '''
-#         Args:
-#             x: array of eegs, that is every element of x is (n_channels, n_ticks)
-#                 x shaped (n_eegs) of 2d array or (n_eegs, n_channels, n_ticks)
-#         '''
-#         for signals in x:
-#             print(signals.T)
-#             self.scaler.partial_fit(signals.T)
-            
-#         return self
-
-#     def transform(self, x):
-#         '''Scales each channel
-
-#         Wors either with one record, 2-dim input, (n_channels, n_samples)
-#             or many records 3-dim, (n_records, n_channels, n_samples)
-#         Returns the same format as input
-#         '''
-#         scaled = np.empty_like(x)
-#         for i, signals in enumerate(x):
-#             # double T for scaling each channel separately
-#             scaled[i] = self.scaler.transform(signals.T).T
-#         return scaled
-
 
 class MarkersTransformer(Transformer):
     '''Transforms markers channels to arrays of indexes of epoch start and labels

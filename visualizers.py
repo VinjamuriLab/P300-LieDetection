@@ -19,8 +19,7 @@ def mne_arrays(
     info.set_montage(montage)
     
     print(bin_epochs[0][0].shape, "oy ebitch")
-    # epochs = np.concatenate([i[0][0] for i in bin_epochs])
-    # events = np.concatenate([i[0][1] for i in bin_epochs])
+
     epochs = bin_epochs[0]
     events= np.array(bin_epochs[1])
     events = np.c_[np.arange(len(events)), events, events]

@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import time
 
 class BasicBlock1D(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1):
@@ -143,9 +144,6 @@ class Conv1D_v2(nn.Module):
         
         )
 
-
-        # out_features = 5376
-        out_features = 7424
         self.classifier = nn.Sequential(
             nn.Linear(3072, 2000),
             # nn.BatchNorm1d(),
@@ -155,17 +153,13 @@ class Conv1D_v2(nn.Module):
             nn.Linear(1000, 80),
             nn.ReLU(inplace= 1),
             nn.Linear(80, 1),
-            # nn.Sigmoid()
         )
 
 
     def forward(self, x):
-        
-      
         x = self.seq(x)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
-
         return x
     
     def save(self, name=None):
@@ -205,16 +199,12 @@ class Transformer1d(nn.Module):
         self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=6)
 
         # Calculate the output size after the Transformer
-        # This step is crucial and needs to be adjusted based on how you handle the sequence
-        # For simplicity, assuming the output size remains d_model * n_length
-        # This might need adjustment based on your actual sequence handling (e.g., pooling, averaging)
         self.fc_out_size = d_model * n_length
-        # print("fc_out", self.fc_out_size)
-        # Final linear layer to match the desired feature size (n_classes)
+
         self.fc = nn.Linear(self.fc_out_size, n_classes)
 
     def forward(self, x):
-        # Input x shape: (batch_size, input_size, n_length)
+       
 
         # Project input to d_model dimension
         x = x.permute(2, 0, 1)  # Change shape to (n_length, batch_size, input_size)
@@ -224,13 +214,11 @@ class Transformer1d(nn.Module):
         x = self.transformer_encoder(x)  # Shape remains (n_length, batch_size, d_model)
 
         # Flatten the output
-        x = x.permute(1, 2, 0)  # Change shape to (batch_size, d_model, n_length)
-        # print(x.shape)
+        x = x.permute(1, 2, 0)  
+        
         x = torch.flatten(x, start_dim=1)  # Flatten to (batch_size, d_model * n_length)
-        # print(x.shape, "oyasid hpd asodih")
-        # Final linear layer
-        x = self.fc(x)  # Shape becomes (ba||tch_size, n_classes)
-
+        
+        x = self.fc(x)  
         return x
 
 
@@ -279,10 +267,6 @@ class Bio(nn.Module):
 
     def load(self, path):
         self.load_state_dict(torch.load(path))
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import time
 
 class InceptionModule(nn.Module):
     def __init__(self, in_channels):
@@ -430,8 +414,6 @@ class EEGInceptionModel(nn.Module):
     def load(self, path):
         self.load_state_dict(torch.load(path))
 
-import torch
-import torch.nn as nn
 
 class Block(nn.Module):
     def __init__(self, inplace):
@@ -470,11 +452,8 @@ class ChronoNet(nn.Module):
         x = self.block2(x)
         x = x.permute(0, 2, 1)  # Adjust for GRU input
         
-        # GRU forward pass
         gru_out, _ = self.gru(x)
         # Use the last output from GRU
         x = gru_out[:, -1, :]  
-        
-        # Fully connected layer
         x = self.fc(x)
         return x
