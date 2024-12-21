@@ -1,14 +1,15 @@
 import pandas as pd
 import numpy as np,os
 
-# the new dataset format is different, instead of subject_ids we were given direct trial wise separated data. 
+"""This code organizes the numpy files, storing their file paths and corresponding labels in a CSV file. This structured format allows easy integration with
+ the dataset class for model processing."""
+
 def process():
 
     df = pd.DataFrame()
     sub_paths = ["data03_all.npz", "data02_all.npz"]
     path = "./data/new_data/"
     
-
     dest_path = "./data/pre-processed_raw/"
     
     if not os.path.exists(dest_path):
@@ -22,7 +23,7 @@ def process():
         if not os.path.exists(internal_path): os.mkdir(internal_path)
 
         data = np.load(path + sub_path, allow_pickle= 1)
-        print(path + sub_path, "ihh" )
+        
         eeg_filt = np.array(data["eeg_raw"]) # can take two values (eeg_raw, eeg_filt)
         subject_memory = np.array(data["subject_memory"])
         validity = np.array(data['validity'])
@@ -30,7 +31,6 @@ def process():
         annotations = np.array(data["annotations"])
         test_id = np.array(data["annotations"]) 
         
-        print(eeg_filt.shape)
         
         subject_memory_s = []
         validity_s = []
@@ -75,8 +75,7 @@ def process():
             to_save
         
         )
-        # print(df)
-        # print(f"{dest_path}{sub_path[:6]}.csv")
+        
         df.to_csv(f"{internal_path}{sub_path[:6]}.csv")
         print("done")
 
