@@ -21,7 +21,7 @@ We evaluated several state-of-the-art deep learning models:
 |---------------------|--------------|---------------------|--------------------|  
 | 🏆 **CNN 1D**       | 80.61%       | 10.33               | 35.4               |  
 | **ResNet**          | 77.45%       | 1.48                | 188.1              |  
-| Transformer         | 60.51%       | 1.63                | 39.8               |  
+| Transformer         | 64.60%       | 1.63                | 39.8               |  
 | ChronoNet           | 57.14%       | 0.02                | 4.2                |  
 | EfficientNet        | 59.23%       | 0.31                | 7.1                |  
 
